@@ -4,11 +4,14 @@ import path from 'path';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import http from 'http';
+import https from 'https';
+import fs from 'fs';
 
 dotenv.config({ path: path.join(__dirname, '../.env') });
 import { handleError } from './helpers/error';
 import httpLogger from './middlewares/httpLogger';
 import router from './routes/index';
+import logger from './utils/logger';
 
 const app: express.Application = express();
 
@@ -17,12 +20,23 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
+const isHttps = parseInt(process.env.isHttps as string);
+const httpsPort = process.env.httpsPort;
+const httpPort = process.env.httpPort;
+let credentials = {};
+
+if(isHttps === 1) {
+  const privateKey  = fs.readFileSync('sslcert/server.key', 'utf8');
+  const certificate = fs.readFileSync('sslcert/server.pem', 'utf8');
+  credentials = {key: privateKey, cert: certificate};
+}
+
 app.all('*',function (_req, res, next) {
 	res.header('Access-Control-Allow-Origin','https://crypto-gun-web.vercel.app');
 	res.header('Access-Control-Allow-Headers','content-type,Content-Length, Authorization,Origin,Accept,X-Requested-With'); //允许的请求头
 	res.header('Access-Control-Allow-Methods', 'POST, GET');
 	res.header("Content-Type", "application/json;charset=utf-8")
-	// res.header('Access-Control-Allow-Credentials',true);  //允许携带cookies
+	res.header('Access-Control-Allow-Credentials', "true");
 	next();
 });
 
@@ -39,10 +53,19 @@ const errorHandler: express.ErrorRequestHandler = (err, _req, res) => {
 };
 app.use(errorHandler);
 
-const port = process.env.PORT || '8000';
-app.set('port', port);
+if(isHttps) {
+  const httpsServer = https.createServer(credentials, app);
+  httpsServer.listen(httpsPort, function () {
+    logger.info(`CryptoGun server has started on https port ${httpsPort}.`);
+  })  
+	httpsServer.on('error', onError);
+}
 
-const server = http.createServer(app);
+const httpServer = http.createServer(app);
+httpServer.listen(httpPort, function () {
+  logger.info(`CryptoGun server has started on http port ${httpPort}.`);
+})
+httpServer.on('error', onError);
 
 function onError(error: { syscall: string; code: string }) {
   if (error.syscall !== 'listen') {
@@ -61,13 +84,3 @@ function onError(error: { syscall: string; code: string }) {
       throw error;
   }
 }
-
-function onListening() {
-  const addr = server.address();
-  const bind = typeof addr === 'string' ? `pipe ${addr}` : `port ${addr?.port}`;
-  console.info(`Server is listening on ${bind}`);
-}
-
-server.listen(port);
-server.on('error', onError);
-server.on('listening', onListening);
