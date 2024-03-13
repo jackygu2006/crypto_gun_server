@@ -32,9 +32,8 @@ if(isHttps === 1) {
 }
 
 app.all('*',function (_req, res, next) {
-	res.header('Access-Control-Allow-Origin','https://crypto-gun-web.vercel.app');
-	// res.header('Access-Control-Allow-Origin','*');
-	res.header('Access-Control-Allow-Headers','content-type,Content-Length, Authorization,Origin,Accept,X-Requested-With'); //允许的请求头
+	res.header('Access-Control-Allow-Origin', process.env.NODE_ENV === 'production' ? 'https://crypto-gun-web.vercel.app' : '*');
+	res.header('Access-Control-Allow-Headers','content-type,Content-Length, Authorization,Origin,Accept,X-Requested-With');
 	res.header('Access-Control-Allow-Methods', 'POST, GET');
 	res.header("Content-Type", "application/json;charset=utf-8")
 	res.header('Access-Control-Allow-Credentials', "true");
