@@ -7,7 +7,7 @@ export const getExchangeObj = async () => {
 		const exchange = new ccxt.binance({
 			apiKey: process.env.BINANCE_API_KEY,
 			secret: process.env.BINANCE_API_SECRET,
-			verbose: true,
+			// verbose: true,
 			defaultType: 'future',
 			enableRateLimit: true
 		})
@@ -66,7 +66,7 @@ export const createMarketOrderWithStopLoss = async (
 		await exchange.data?.createOrder(symbol, "market", side, amount);
 
 		// Create limit order as stop loss
-		await exchange.data?.createOrder(symbol, "limit", side === "buy" ? "sell" : "buy", amount, stoploss, {'stopPrice': stoploss});
+		await exchange.data?.createOrder(symbol, "limit", side === "buy" ? "sell" : "buy", amount, stoploss, {'stopPrice': stoploss, 'reduceOnly': 'true'});
 		// logger.info(all_open_positions);
 
 		return({
