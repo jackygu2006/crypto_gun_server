@@ -9,13 +9,13 @@ import fs from 'fs';
 
 dotenv.config({ path: path.join(__dirname, '../.env') });
 import { handleError } from './helpers/error';
-import httpLogger from './middlewares/httpLogger';
+// import httpLogger from './middlewares/httpLogger';
 import router from './routes/index';
 import logger from './utils/logger';
 
 const app: express.Application = express();
 
-app.use(httpLogger);
+// app.use(httpLogger);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
