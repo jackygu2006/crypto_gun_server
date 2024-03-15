@@ -11,7 +11,7 @@ export const getExchangeObj = async () => {
 			defaultType: 'future',
 			enableRateLimit: true
 		})
-		// exchange.setSandboxMode(true);
+		if(process.env.USE_TESTNET === '1') exchange.setSandboxMode(true);
 		await exchange.loadMarkets();
 		return {
 			success: true,
@@ -203,9 +203,26 @@ export const createMarketOrderNoStopLoss = async (
 		}
 }
 
-export const calculateOrderSize = (currentPrice: number, stopLoss: number, maxLoss: number) => {
+export const calculateOrderSize = async (symbol: string, currentPrice: number, stopLoss: number, maxLoss: number) => {
 	// The order size is based on USDT
-	return 	Math.floor(currentPrice / Math.abs(currentPrice - stopLoss) * maxLoss); // USDT based
+	// get current position
+	const exchange = await getExchangeObj();
+	const positions = await exchange.data?.fetchPositions([symbol]) as ccxt.Position[];
+
+	if(positions.length === 0) {
+		return 	Math.floor(currentPrice / Math.abs(currentPrice - stopLoss) * maxLoss); // USDT based
+	} else {
+		const currentQuanty = positions[0]['collateral'] as number;
+		const currentCost = positions[0]['entryPrice'] as number;
+		// console.log("side", positions[0]['side'], "ML", maxLoss, "S", stopLoss, "P2", currentPrice, "Q1", currentQuanty, "P1", currentCost )
+		if(positions[0]['side'] === 'long' && stopLoss <= currentPrice && currentPrice >= currentCost) {
+			return Math.floor((maxLoss - (1 - stopLoss / currentCost) * currentQuanty) / (1 - stopLoss / currentPrice));
+		} else if(positions[0]['side'] === 'short' && stopLoss >= currentPrice && currentPrice <= currentCost) {
+			return Math.floor((maxLoss + (1 - stopLoss / currentCost) * currentQuanty) / (stopLoss / currentPrice - 1));
+		} else {
+			return 0;
+		}
+	}
 }
 
 export const getBalance = async (symbol: string) => {

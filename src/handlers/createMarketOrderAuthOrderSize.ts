@@ -50,7 +50,15 @@ export const createMarketOrderAuthOrderSize = async (_req: express.Request, res:
 	}
 	const lastPrice = (future.data as Ticker).last as number;
 
-	const orderSize = calculateOrderSize(lastPrice, stoploss_price, maxLoss);
+	const orderSize = await calculateOrderSize(symbol, lastPrice, stoploss_price, maxLoss);
+	if(orderSize <= 0) {
+		res.send({
+			success: false,
+			message: "Invalid Order Size"
+		})
+		return;
+	}
+	
 	if(orderSize < MIN_ORDER_SIZE) {
 		res.send({
 			success: false,
